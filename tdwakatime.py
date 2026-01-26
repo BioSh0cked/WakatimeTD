@@ -16,17 +16,22 @@ GITHUB_LATEST_URL = 'https://api.github.com/repos/wakatime/wakatime-cli/releases
 is_win = platform.system() == 'Windows'
 
 class Wakatime:
-	def init(self, ownerComp):
+	def __init__(self, ownerComp):
 		self.owner = ownerComp
 		self.last_cook = 0
 		self.last_heartbeat = 0
-		self.idle_timeout = 60 = 0
+		self.idle_timeout = 60
 		self.api_key = self.get_key()
 		self.cli_path = self.get_cli()
 		if not hasattr(project, 'Plugin_Initialized'):
 			project.addCallback(self.Event)
 			project.Plugin_initialized = True
 		print("Wakatime plugin initialized")
+
+	def Event(self, event):
+		if event['name'] in ['onValueChange', 'onCreate', 'onProjectPostSave']:
+			self.last_cook = time.time()
+			self.send_heartbeat(event)
 	def get_latest_client_version():
 		latest_version = "0"
 		config = os.path.expanduser("~/.wakatime/wakatime-internal.cfg")
@@ -49,6 +54,7 @@ class Wakatime:
 					arch=platform.machine() or platform.processor(),
 				))
 	def get_key():
+		global API_KEY
 		config = os.path.expanduser("~/.wakatime.cfg")
 		if os.path.exists(config):
 			with open(config, "r") as f:
@@ -56,6 +62,8 @@ class Wakatime:
 						if line.startswith("api_key"):
 								return line.split("=")[1].strip()
 	def get_cli():
+		global WAKATIME_CLI_PATH
+
 		WAKATIME_CLI_PATH = os.path.join("~/.wakatime/wakatime-cli")
 
 		if not WAKATIME_CLI_PATH:
@@ -70,6 +78,23 @@ class Wakatime:
 	API_KEY = get_key()
 	WAKATIME_CLI_PATH = get_cli()
 
-	def heartbeat():
+	def heartbeat(self, entity=None):
 		if not API_KEY or not WAKATIME_CLI_PATH:
 			return
+
+		if time.time() - self.last_heartbeat < 60:
+			return
+		entity = project.path
+		project_name = os.path.basename(entity)
+
+		try:
+			subprocess.Popen([
+				self.cli_path,
+				'--key', self.api_key,
+				'--entity', entity,
+				'--project', project_name,
+				'--plugin', 'tdwakatime/0.0.1'
+			])
+			self.last_heartbeat = time.time()
+		except Exception as e:
+			print("Heartbeat error:", e)
