@@ -20,16 +20,11 @@ is_win = platform.system() == 'Windows'
 class WakaExt:
 	def __init__(self, ownerComp) -> None:
 		self.owner = ownerComp
-		self.last_cook = 0
 		self.last_heartbeat = 0
 		self.idle_timeout = 60
 		self.api_key = self.Get_key()
-		self.cli_path = self.Get_cli()
-	@property
-	def Event(self, entity):
-		self.last_cook = time.time()
-		self.Send_heartbeat(entity)
-		return
+		self.cli_path = os.path.expanduser(self.Get_cli())
+
 	def Get_latest_client_version(self):
 		latest_version = "0"
 		config = os.path.expanduser("~/.wakatime/wakatime-internal.cfg")
@@ -83,7 +78,7 @@ class WakaExt:
 		project_name = re.sub(r'\.\d+(?=\.toe$)', '', project.name)
 		try:
 			subprocess.Popen([
-				os.path.expanduser(self.cli_path),
+				self.cli_path,
 				'--key', self.api_key,
 				'--entity', entity,
 				'--project', project_name,
