@@ -48,6 +48,7 @@ class WakaExt:
 				))
 	def Get_key(self):
 		global api_url
+		global config
 		config = os.path.expanduser("~/.wakatime.cfg")
 		if os.path.exists(config):
 			with open(config, "r") as f:
@@ -55,7 +56,12 @@ class WakaExt:
 						if line.startswith('api_url'):
 							api_url = line.split('=')[1].strip()
 						if line.startswith("api_key"):
-								return line.split("=")[1].strip()
+							return line.split("=")[1].strip()
+
+					run(
+						"op('{}').op('KeyDialog').par.Open.pulse()".format(self.owner.path),
+						delayFrames=1
+					)
 
 	def Get_cli(self):
 		global WAKATIME_CLI_PATH
@@ -70,6 +76,12 @@ class WakaExt:
 			)
 			WAKATIME_CLI_PATH = os.path.join("~/.wakatime/", waka_cli)
 		return WAKATIME_CLI_PATH
+
+	def ReplaceApiFromDialog(self, enteredText):
+		if os.path.exists(config) and self.api_key is None:
+			self.api_key = enteredText
+			with open(config, "a") as f:
+				f.write("\napi_key = " + enteredText)
 
 	def Send_heartbeat(self, entity):
 		if not self.api_key or not WAKATIME_CLI_PATH:
@@ -88,10 +100,6 @@ class WakaExt:
 				'--plugin', 'tdwakatime/0.0.1']
 			if api_url is not None:
 				cmd.extend(['--api-url', api_url])
-			if category is not None:
-				cmd.extend(['--category', category])
-			if writeflag is not None:
-				cmd.extend(['--write', writeflag])
 
 			subprocess.Popen(
 				[os.path.expanduser(self.cli_path)] + cmd
