@@ -83,7 +83,7 @@ class WakaExt:
 			with open(config, "a") as f:
 				f.write("\napi_key = " + enteredText)
 
-	def Send_heartbeat(self, entity):
+	def Send_heartbeat(self, entity, event):
 		if not self.api_key or not WAKATIME_CLI_PATH:
 			return
 
@@ -91,12 +91,17 @@ class WakaExt:
 			return
 		project_name = re.sub(r'\.\d+(?=\.toe$)', '', project.name)
 		_entity = re.sub(r'\.\d+(?=\.toe$)', '', entity)
+		if event == 'onProjectPostSave':
+			is_write = 'true'
+		else:
+			is_write = 'false'
 		try:
 
 			cmd = [
 				'--key', self.api_key,
 				'--entity', _entity,
 				'--project', project_name,
+				'--write', is_write,
 				'--plugin', 'tdwakatime/0.0.1']
 			if api_url is not None:
 				cmd.extend(['--api-url', api_url])
